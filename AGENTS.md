@@ -13,6 +13,10 @@ changes the live config of every tool at once**.
 | `mcp/servers.json` | shared MCP servers (`{"mcpServers":{...}}`) | Antigravity + Cursor (linked), Claude + Codex (via CLI) |
 | `skills.txt` | third-party skill packs | `npx -y skills add <line> -g -y` |
 | `claude/plugins.txt` | Claude marketplaces + plugins | `claude plugin marketplace add` / `claude plugin install` |
+| `hooks/` | optional Claude/agy safety & format hooks | not auto-linked (`hooks/README.md`) |
+| `prompts/` | reusable high-leverage prompt library | not linked |
+| `evals/` | starter skill eval cases | not linked |
+| `scripts/` | `verify.sh`, `init-project.sh`, `sync.sh` | not linked |
 | `templates/AGENTS.md` | per-project AGENTS.md template | not linked |
 
 ## Rules
