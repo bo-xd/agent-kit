@@ -24,6 +24,7 @@ block() {
 }
 
 # Destructive filesystem wipes targeting /, ~, $HOME, or ..
+# shellcheck disable=SC2016
 if grep -qE '(^|[;&|[:space:]])rm[[:space:]]+-[[:alnum:]]*r[[:alnum:]]*f?[[:space:]]+(/|~|\$HOME|\.\.)([[:space:];&|]|$)' <<<"$cmd"; then
   block "recursive rm on root, home, or parent directory"
 fi

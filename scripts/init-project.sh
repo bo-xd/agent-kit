@@ -79,6 +79,7 @@ else
   done
   [[ -z "$LAYOUT" ]] && LAYOUT="- <list key directories/files here>\n"
 
+  # shellcheck disable=SC2016
   {
     printf '# AGENTS.md — %s\n\n' "$PROJECT_NAME"
     printf 'Detected stack: %s. Commands marked `# TODO: verify` have not been run here yet.\n\n' "$STACK"
