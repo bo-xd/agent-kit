@@ -7,12 +7,13 @@ Evaluation cases for `agent-kit` skills.
 - **Automated (`./scripts/verify.sh`):** validates skill frontmatter, `case.yaml` structure, and verifies runnable eval scaffolds reproduce their baseline failure cleanly (e.g. `uaf-in-parser` triggers ASan before a fix).
 - **Live LLM evals (`./scripts/eval.sh`):** runs `claude plugin eval` with `--ablation with-without` (baseline vs. skill), reporting score delta, tool calls, token usage, and execution time. Assertions in `case.yaml` are graded by the eval runner and should be spot-checked by a human when changing skills.
 
-## Running with Claude Code
+## Running evals (multi-agent: agy, codex, claude)
 
 ```bash
-./scripts/eval.sh
-# or filter to a specific case:
-./scripts/eval.sh --case uaf-in-parser
+./scripts/eval.sh                  # runs bench.py across all installed agents
+./scripts/eval.sh --agents agy     # run one agent
+./scripts/eval.sh --task uaf-debug # run one task
+./scripts/eval.sh --plugin-eval    # run Claude-specific `claude plugin eval` on case.yaml
 ```
 
 ## Reproducible A/B Benchmark (`scripts/bench.py`)
