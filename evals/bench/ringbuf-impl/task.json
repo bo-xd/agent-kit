@@ -1,0 +1,7 @@
+{
+  "name": "ringbuf-impl",
+  "category": "implementation",
+  "skill": "c-cpp-debugging",
+  "prompt": "Implement rb_init, rb_push, and rb_pop in ringbuf.c matching ringbuf.h so `make test` passes under ASan/UBSan. Only edit ringbuf.c.",
+  "verify_cmd": "make test"
+}

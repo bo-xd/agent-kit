@@ -1,0 +1,7 @@
+{
+  "name": "uaf-debug",
+  "category": "c-cpp-debugging",
+  "skill": "c-cpp-debugging",
+  "prompt": "Fix the intermittent crash in packet.c so `make test` passes cleanly under ASan/UBSan. Only edit packet.c.",
+  "verify_cmd": "make test"
+}

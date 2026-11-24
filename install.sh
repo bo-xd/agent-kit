@@ -5,13 +5,14 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TS="$(date +%Y%m%d-%H%M%S)"
+TS="$(date +%Y%m%d-%H%M%S)-$$"
 BACKUP_DIR="$HOME/.agent-kit-backups/$TS"
 
 DRY_RUN=0
 CHECK=0
 LINKS_ONLY=0
 NOT_OK=0
+FAILED=0
 
 usage() {
   cat <<EOF
@@ -118,17 +119,23 @@ do_links() {
   done
   shopt -u nullglob
 
-  local mcp_resolved="$HOME/.cache/agent-kit/mcp_config.json"
-  if (( ! CHECK )) && have python3; then
-    run mkdir -p "$(dirname "$mcp_resolved")"
-    if (( DRY_RUN )); then
-      say "[dry-run] render $REPO/mcp/servers.json -> $mcp_resolved"
-    else
-      render_mcp_json >"$mcp_resolved"
+  local mcp_src="$REPO/mcp/servers.json"
+  if have python3; then
+    local mcp_resolved="$HOME/.cache/agent-kit/mcp_config.json"
+    if (( ! CHECK )); then
+      run mkdir -p "$(dirname "$mcp_resolved")"
+      if (( DRY_RUN )); then
+        say "[dry-run] render $REPO/mcp/servers.json -> $mcp_resolved"
+      else
+        render_mcp_json >"$mcp_resolved"
+      fi
     fi
+    mcp_src="$mcp_resolved"
+  else
+    say "warn     python3 not found; linking raw mcp/servers.json without \${VAR} expansion"
   fi
-  link "$mcp_resolved" "$HOME/.gemini/config/mcp_config.json"
-  link "$mcp_resolved" "$HOME/.cursor/mcp.json"
+  link "$mcp_src" "$HOME/.gemini/config/mcp_config.json"
+  link "$mcp_src" "$HOME/.cursor/mcp.json"
 }
 
 do_skill_packs() {
@@ -180,7 +187,7 @@ PY
 
 # Print one line per server: name<TAB>hash<TAB>server-json<TAB>command<US>arg...<TAB>url
 mcp_entries() {
-  render_mcp_json | python3 - <<'PY'
+  render_mcp_json | python3 -c '
 import hashlib, json, sys
 servers = json.load(sys.stdin)["mcpServers"]
 for name, cfg in servers.items():
@@ -192,7 +199,7 @@ for name, cfg in servers.items():
     cmd = "\x1f".join([cfg.get("command", "")] + cfg.get("args", []))
     url = cfg.get("url", "")
     print(f"{name}\t{digest}\t{payload}\t{cmd}\t{url}")
-PY
+'
 }
 
 do_mcp() {
@@ -209,8 +216,12 @@ do_mcp() {
         if (( ! DRY_RUN )); then
           claude mcp remove -s user "$name" >/dev/null 2>&1 || true
         fi
-        ensure "claude mcp $name" claude mcp add-json -s user "$name" "$json"
-        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/claude-$name"; fi
+        if ensure "claude mcp $name" claude mcp add-json -s user "$name" "$json"; then
+          if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/claude-$name"; fi
+        else
+          echo "FAIL     claude mcp $name (hash not saved; rerun install.sh to retry)" >&2
+          FAILED=1
+        fi
       fi
     else
       say "skip     claude mcp $name (claude not found)"
@@ -222,12 +233,20 @@ do_mcp() {
         say "ok       codex mcp $name"
       elif [[ -n "${cmd[0]:-}" ]]; then
         if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
-        ensure "codex mcp $name" codex mcp add "$name" -- "${cmd[@]}"
-        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+        if ensure "codex mcp $name" codex mcp add "$name" -- "${cmd[@]}"; then
+          if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+        else
+          echo "FAIL     codex mcp $name (hash not saved; rerun install.sh to retry)" >&2
+          FAILED=1
+        fi
       elif [[ -n "$url" ]]; then
         if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
-        ensure "codex mcp $name" codex mcp add "$name" --url "$url"
-        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+        if ensure "codex mcp $name" codex mcp add "$name" --url "$url"; then
+          if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+        else
+          echo "FAIL     codex mcp $name (hash not saved; rerun install.sh to retry)" >&2
+          FAILED=1
+        fi
       else
         say "skip     codex mcp $name (unsupported transport)"
       fi
@@ -245,5 +264,9 @@ if (( ! LINKS_ONLY )); then
   do_skill_packs
   do_claude_plugins
   do_mcp
+fi
+if (( FAILED )); then
+  echo "install.sh finished with failures (see above)" >&2
+  exit 1
 fi
 say "done"

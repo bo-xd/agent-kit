@@ -1,0 +1,7 @@
+{
+  "name": "perf-hotloop",
+  "category": "performance",
+  "skill": "perf-profiling",
+  "prompt": "Optimize count_common() in hotloop.c so `make test` passes (correctness + timing budget). Only edit hotloop.c.",
+  "verify_cmd": "make test"
+}

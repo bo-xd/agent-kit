@@ -1,0 +1,7 @@
+{
+  "name": "refactor-dedup",
+  "category": "refactoring",
+  "skill": "c-cpp-debugging",
+  "prompt": "Refactor parse_u16_hex and parse_u16_dec in parse.c to share one helper without changing behavior. `make test` must pass. Only edit parse.c.",
+  "verify_cmd": "make test"
+}
