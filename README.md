@@ -1,134 +1,101 @@
 # agent-kit
 
-One source of truth for my AI coding setup — global rules, skills, plugins, MCP servers and
-subagents — shared by **Claude Code, Codex, Antigravity (agy), Cursor and Junie**, installed with
-one script.
-
-Edit files here, re-run `./install.sh`, and every tool picks up the change. No more hand-editing
-five config dirs that drift apart.
-
-## What links where
-
-`install.sh` symlinks repo files into each tool's config dir:
-
-| Repo source | Linked to | Read by |
-|---|---|---|
-| `rules/global.md` | `~/.gemini/GEMINI.md`<br>`~/.claude/CLAUDE.md`<br>`~/.codex/AGENTS.md` | Antigravity<br>Claude Code<br>Codex |
-| `skills/<name>/` | `~/.agents/skills/<name>`<br>`~/.claude/skills/<name>` | Codex, Cursor, Antigravity, Junie<br>Claude Code |
-| `agents/antigravity/*.md` | `~/.gemini/config/agents/<file>` | Antigravity subagents |
-| `mcp/servers.json` | `~/.gemini/config/mcp_config.json`<br>`~/.cursor/mcp.json` | Antigravity<br>Cursor |
-
-Plus CLI steps (each skipped if the CLI isn't installed, all skipped with `--links-only`):
-
-| Repo source | Step |
-|---|---|
-| `skills.txt` | `npx -y skills add <line> -g -y` per line → third-party packs into `~/.agents/skills` |
-| `claude/plugins.txt` | add missing marketplaces, `claude plugin install` missing plugins |
-| `mcp/servers.json` | `claude mcp add-json -s user …` / `codex mcp add …` (re-synced automatically whenever config hashes change) |
-
-> **Third-party packs reach Claude differently.** Claude Code does not read `~/.agents/skills`.
-> It gets superpowers / caveman / ponytail / grill etc. as **plugins** (`claude/plugins.txt`).
-> Every other tool gets the same packs as **skills** via `skills.txt` → `~/.agents/skills`.
-> My own skills in `skills/` are linked into both places.
+One source of truth for my AI coding setup across **Claude Code, Codex, Antigravity (`agy`), Cursor, and Junie**. Edit here, run `./install.sh`, and every tool stays in sync.
 
 ## Quick start (macOS / Linux / WSL)
 
 ```bash
 git clone https://github.com/bo-xd/agent-kit.git ~/Coding/agent-kit
 cd ~/Coding/agent-kit
-./install.sh --dry-run          # print every action, change nothing
-./install.sh                    # link everything + run npx/claude/codex steps
-./install.sh --check            # verify links + MCP/plugin state; non-zero exit if anything is off
+./install.sh --dry-run   # preview without changing anything
+./install.sh             # link files + sync skills, plugins, and MCPs
+./install.sh --check     # verify links + MCP/plugin state
 ```
-
-| Flag | Does |
-|---|---|
-| *(none)* | links + third-party skills + Claude plugins + MCP registration |
-| `--dry-run` | print actions only |
-| `--check` | verify links + CLI-managed MCP/plugins (pair with `--links-only` for links only) |
-| `--links-only` | symlinks only; skip all `npx` / `claude` / `codex` steps (offline-safe) |
-| `--prune-backups N` | keep only the newest `N` backup directories in `~/.agent-kit-backups` |
-| `--help` | usage |
-
-The script is idempotent: re-running it is a no-op when everything is already in place.
 
 ## Intentionally not managed
 
-- Tool settings files (`~/.claude/settings.json`, `~/.codex/config.toml`, …) — machine-specific.
-- Secrets and API keys (use `${ENV_VAR}` placeholders + gitignored `mcp/servers.local.json`).
-- Personal MCP servers (e.g. whatsapp).
-- Copilot / Junie-specific config beyond what `~/.agents/skills` already gives them.
-- Per-project `AGENTS.md` files — those live in each project (`./scripts/init-project.sh` or `templates/AGENTS.md`: build/test commands, layout, conventions, do-not rules, gotchas, done criteria).
+- Machine-specific settings (`~/.claude/settings.json`, `~/.codex/config.toml`)
+- Secrets / API keys (use `${ENV_VAR}` placeholders + gitignored `mcp/servers.local.json`)
+- Personal MCP servers (e.g. `whatsapp`)
+- Per-project `AGENTS.md` (bootstrap with `./scripts/init-project.sh`)
 
-## Repo layout
+## Per-harness setup
 
-```
-rules/global.md                 global rules for every agent
-skills/<name>/SKILL.md          my own skills (see docs/WORKFLOW.md)
-skills.txt                      third-party skill packs (one `npx skills add` arg list per line)
-claude/plugins.txt              Claude marketplaces + plugin ids
-mcp/servers.json                shared MCP servers ({"mcpServers": {...}})
-agents/antigravity/*.md         Antigravity subagents
-templates/AGENTS.md             starting point for a project's AGENTS.md
-hooks/                          optional safety hooks (see hooks/README.md)
-prompts/                        reusable high-leverage prompt library
-evals/                          starter skill eval cases
-scripts/verify.sh               syntax, frontmatter, hook, and sandbox install checks
-scripts/eval.sh                 run live skill evals via `claude plugin eval`
-scripts/bench.py                reproducible A/B benchmark across claude, codex, and agy
-scripts/init-project.sh         bootstrap AGENTS.md + CLAUDE.md in any repo
-scripts/sync.sh                 pull, re-link, and update third-party skills/plugins
-.github/workflows/ci.yml        runs scripts/verify.sh on push/PR to main
-docs/WORKFLOW.md                playbook: which tool / skill when, prompts that work
-AGENTS.md                       instructions for agents editing this repo
-```
+<details>
+<summary><b>Claude Code</b> — rules, skills, plugins, MCPs, hooks</summary>
 
-## Adding things
+- **Rules:** `rules/global.md` → `~/.claude/CLAUDE.md`
+- **Own skills:** `skills/*` → `~/.claude/skills/*`
+- **Third-party packs:** installed as plugins via `claude/plugins.txt` (Claude does not read `~/.agents/skills`)
+- **MCPs:** registered via `claude mcp add-json -s user` (re-synced automatically when config hashes change)
+- **Hooks:** wire `hooks/guard-command.sh` + `hooks/format-on-edit.sh` manually into `~/.claude/settings.json` (see [hooks/README.md](hooks/README.md))
 
-**A skill of my own** — create `skills/<name>/SKILL.md` with frontmatter:
+</details>
 
-```markdown
----
-name: <name>            # must match the dir name
-description: Does X. Use when Y.
----
-```
+<details>
+<summary><b>Antigravity (agy)</b> — rules, skills, subagents, MCPs</summary>
 
-Run `./install.sh --links-only`. It's linked into `~/.agents/skills` and `~/.claude/skills`
-automatically (every dir under `skills/` is picked up). Use the `writing-skills` skill for guidance.
+- **Rules:** `rules/global.md` → `~/.gemini/GEMINI.md`
+- **Skills:** `skills/*` + `skills.txt` → `~/.agents/skills/*`
+- **Subagents:** `agents/antigravity/*.md` → `~/.gemini/config/agents/*`
+- **MCPs:** rendered config (`~/.cache/agent-kit/mcp_config.json`) → `~/.gemini/config/mcp_config.json`
 
-**A third-party skill pack** — add a line to `skills.txt` with the arguments you'd pass to
-`npx skills add`, e.g. `obra/superpowers` or `owner/repo --skill name`. Check it first with
-`npx -y skills add <src> -l` (lists without installing). If the pack also ships a Claude plugin,
-add it to `claude/plugins.txt` too — otherwise Claude won't see it.
+</details>
 
-**A Claude plugin** — add a `plugin <plugin>@<marketplace>` line (and `marketplace <name> <owner/repo>` if not built in) to `claude/plugins.txt`, then run `./install.sh`.
+<details>
+<summary><b>Codex</b> — rules, skills, MCPs</summary>
 
-**An MCP server** — add an entry to `mcp/servers.json`:
+- **Rules:** `rules/global.md` → `~/.codex/AGENTS.md`
+- **Skills:** `skills/*` + `skills.txt` → `~/.agents/skills/*`
+- **MCPs:** registered via `codex mcp add` (forwards `--env` for stdio and `--bearer-token-env-var` for URL servers)
 
-```json
-{ "mcpServers": { "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] } } }
-```
+</details>
 
-Antigravity and Cursor read the rendered config at `~/.cache/agent-kit/mcp_config.json` (with
-`${VAR}` expanded and optional gitignored `mcp/servers.local.json` merged); `./install.sh`
-registers new servers and automatically re-syncs existing Claude/Codex servers whenever their
-SHA-256 config hash in `~/.cache/agent-kit/mcp-hashes/` changes. **No secrets in `mcp/servers.json`**
-— it's committed. Machine-specific overrides go in `mcp/servers.local.json`, and personal servers
-(e.g. whatsapp) stay in the tool's own config.
+<details>
+<summary><b>Cursor &amp; Junie</b> — skills, MCPs</summary>
 
-## Backups and undo
+- **Skills:** `skills/*` + `skills.txt` → `~/.agents/skills/*`
+- **Cursor MCPs:** rendered config (`~/.cache/agent-kit/mcp_config.json`) → `~/.cursor/mcp.json`
 
-Before linking, any real file or foreign symlink at a target is **moved** to
-`~/.agent-kit-backups/<timestamp>/<same path relative to ~>`. Nothing is deleted.
+</details>
 
-To undo, for each target you want back:
+## Reference
+
+<details>
+<summary><b>Installer flags &amp; helper scripts</b></summary>
+
+| Command / Flag | What it does |
+|---|---|
+| `./install.sh --dry-run` | Print actions, change nothing |
+| `./install.sh --links-only` | Symlinks only (offline-safe, skips `npx`/`claude`/`codex`) |
+| `./install.sh --check` | Verify links + MCP/plugin state (pair with `--links-only` for links only) |
+| `./install.sh --prune-backups N` | Keep only the newest `N` folders in `~/.agent-kit-backups` |
+| `./scripts/sync.sh` | Pull, re-link, update third-party packs, and `--check` |
+| `./scripts/init-project.sh [--verify]` | Bootstrap `AGENTS.md` + `CLAUDE.md` in any repo |
+| `./scripts/eval.sh` | Run multi-agent A/B benchmarks (`agy`, `codex`, `claude`) |
+| `./scripts/verify.sh` | Run syntax, skill, hook, and sandbox install tests |
+
+</details>
+
+<details>
+<summary><b>Repo layout &amp; adding things</b></summary>
+
+- `rules/global.md` — shared rules for every agent
+- `skills/<name>/SKILL.md` — custom skills (auto-linked into `~/.agents/skills` and `~/.claude/skills`; see [docs/WORKFLOW.md](docs/WORKFLOW.md))
+- `skills.txt` / `claude/plugins.txt` — third-party skill packs & Claude plugins
+- `mcp/servers.json` — shared MCP servers (`mcp/servers.local.json` for local overrides)
+- `hooks/`, `prompts/`, `templates/AGENTS.md`, `evals/`
+
+</details>
+
+<details>
+<summary><b>Backups &amp; undo</b></summary>
+
+Replaced files/symlinks are **moved** (never deleted) to `~/.agent-kit-backups/<timestamp>/`. To restore a target:
 
 ```bash
-rm ~/.claude/CLAUDE.md                                            # remove the symlink
-mv ~/.agent-kit-backups/<timestamp>/.claude/CLAUDE.md ~/.claude/  # restore the original
+rm ~/.claude/CLAUDE.md
+mv ~/.agent-kit-backups/<timestamp>/.claude/CLAUDE.md ~/.claude/
 ```
 
-`ls -R ~/.agent-kit-backups/<timestamp>` shows exactly what was moved. Pass `--prune-backups N` to keep only the newest `N` backup folders. Plugins and MCP servers that
-were added via CLI can be removed with `claude plugin uninstall <id>`, `claude mcp remove <name>`,
-`codex mcp remove <name>`.
+</details>
