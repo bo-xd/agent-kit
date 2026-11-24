@@ -29,8 +29,25 @@ def load_tasks(task_filter: str | None):
 
 
 def build_env(home: Path, condition: str, skill_name: str | None) -> dict[str, str]:
+    real_home = Path.home()
     env = os.environ.copy()
     env["HOME"] = str(home)
+    # Link auth files only (never rules/skills) so CLIs can authenticate in baseline.
+    auth_files = [
+        ".codex/auth.json",
+        ".gemini/oauth_creds.json",
+        ".gemini/google_accounts.json",
+        ".gemini/installation_id",
+        ".claude/.credentials.json",
+        ".claude.json",
+    ]
+    for rel in auth_files:
+        src = real_home / rel
+        if src.exists():
+            dst = home / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.symlink_to(src)
+
     rules = (REPO / "rules" / "global.md").read_text(encoding="utf-8")
     skill_txt = ""
     if condition == "agent-kit+skill" and skill_name:
@@ -54,8 +71,8 @@ def run_agent(agent: str, prompt: str, workdir: Path, env: dict[str, str], timeo
     t0 = time.monotonic()
     cmd = {
         "claude": ["claude", "-p", "--output-format", "json", "--dangerously-skip-permissions", "--no-session-persistence", prompt],
-        "codex": ["codex", "exec", "--json", "--full-auto", "--skip-git-repo-check", "-C", str(workdir), prompt],
-        "agy": ["agy", "-p", "--output-format", "json", "--dangerously-skip-permissions", "--disable-slash-commands", prompt],
+        "codex": ["codex", "exec", "--json", "--dangerously-bypass-approvals-and-sandbox", "--skip-git-repo-check", "-C", str(workdir), prompt],
+        "agy": ["agy", f"-p={prompt}", "--output-format", "json", "--dangerously-skip-permissions", "--disable-slash-commands", "--model", "gemini-4-hydrogen-medium"],
     }[agent]
     try:
         proc = subprocess.run(cmd, cwd=workdir, env=env, capture_output=True, text=True, timeout=timeout)
