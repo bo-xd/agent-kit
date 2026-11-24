@@ -28,7 +28,7 @@
 
 - <Language standard and compiler, e.g. C17, gcc and clang must both build warning-free with -Wall -Wextra>
 - <Naming, error-handling style, e.g. functions return int error codes; no exceptions>
-- <Memory/ownership rules, e.g. arena allocator per frame; never free chunk data directly>
+- <Memory/ownership rules, e.g. arena owns frame/request memory; callers do not free slices directly>
 - <Commit style, e.g. Conventional Commits>
 
 ## Do not

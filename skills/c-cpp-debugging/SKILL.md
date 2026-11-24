@@ -94,8 +94,8 @@ Do not run valgrind on an ASan binary.
 
 ## 6. Engine / systems specifics
 
-- **Game/voxel engines:** reproduce with a fixed seed and fixed timestep; dump the
-  offending chunk/entity state. GPU issues: enable the API debug layer
+- **Simulation / rendering loops:** reproduce with a fixed seed and fixed timestep; dump the
+  failing state. GPU issues: enable the API debug layer
   (Vulkan validation layers, `glDebugMessageCallback`) before blaming your code.
 - **Compilers/lexers:** shrink the failing input first (delta-debug by hand or
   `creduce`/`cvise`), then trace token/AST state at the smallest input.

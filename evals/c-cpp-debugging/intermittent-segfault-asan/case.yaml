@@ -1,0 +1,7 @@
+name: intermittent-segfault-asan
+prompt: |
+  My C program segfaults intermittently when parsing binary input. Help me debug it.
+assertions:
+  - Recommends building with debug symbols and AddressSanitizer/UBSan (-fsanitize=address,undefined -g)
+  - Asks to reproduce with the exact failing input/command or inspect the crash in gdb
+  - Does not guess a fix without seeing the failing code or sanitizer trace

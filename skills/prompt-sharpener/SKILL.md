@@ -37,12 +37,12 @@ Every high-leverage engineering prompt answers four things—trim anything that 
 ## Examples (before → after)
 
 **C/C++ bug:**
-- *Before:* "my voxel engine crashes sometimes when loading chunks, can you fix it"
+- *Before:* "my C app crashes sometimes when reading input, can you fix it"
 - *After:*
   ```text
-  Find and fix the intermittent crash during chunk loading in src/world/chunk_loader.c.
-  First build with `-fsanitize=address,undefined -g` and reproduce with `./build/voxel --headless --seed 42` (or inspect `load_chunk` + its callers if no headless flag exists).
-  Constraints: smallest fix, no new dependencies, keep existing chunk file format.
+  Find and fix the intermittent crash in src/parser.c when reading malformed input.
+  First build with `-fsanitize=address,undefined -g` and reproduce with `./build/app < tests/fixtures/bad_input.bin` (or inspect `parse_record` and its callers).
+  Constraints: smallest fix, no new dependencies, keep the public API unchanged.
   Done: ASan/UBSan run completes cleanly and existing tests pass. Show the exact commands and output.
   ```
 
