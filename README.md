@@ -77,6 +77,9 @@ agents/antigravity/*.md         Antigravity subagents
 templates/AGENTS.md             starting point for a project's AGENTS.md
 hooks/                          optional safety hooks (see hooks/README.md)
 prompts/                        reusable high-leverage prompt library
+evals/                          starter skill eval cases
+scripts/verify.sh               syntax, frontmatter, hook, and sandbox install checks
+.github/workflows/ci.yml        runs scripts/verify.sh on push/PR to main
 docs/WORKFLOW.md                playbook: which tool / skill when, prompts that work
 AGENTS.md                       instructions for agents editing this repo
 ```

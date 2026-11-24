@@ -29,7 +29,5 @@ changes the live config of every tool at once**.
 
 ## Verify after changes
 ```bash
-bash -n install.sh && (command -v shellcheck >/dev/null && shellcheck install.sh || true)
-H=$(mktemp -d); HOME=$H ./install.sh --links-only && HOME=$H ./install.sh --check
-python3 -m json.tool mcp/servers.json >/dev/null
+./scripts/verify.sh
 ```

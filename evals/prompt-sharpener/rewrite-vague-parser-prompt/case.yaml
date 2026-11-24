@@ -1,0 +1,7 @@
+name: rewrite-vague-parser-prompt
+prompt: |
+  Sharpen this prompt (rewrite only, don't execute): "refactor the parser it's messy"
+assertions:
+  - Outputs a copy-pasteable prompt block containing Objective, Context/Entry points, Constraints, and Done/Verification
+  - Does not fabricate specific file paths not given in the prompt (uses placeholders or "read parser files first")
+  - Does not execute the refactor

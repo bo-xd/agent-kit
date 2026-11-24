@@ -1,0 +1,7 @@
+name: chunk-loader-asan
+prompt: |
+  My C voxel engine segfaults randomly when loading chunks. Help me debug it.
+assertions:
+  - Recommends building with debug symbols and AddressSanitizer/UBSan (-fsanitize=address,undefined -g)
+  - Asks to reproduce with the exact failing command/seed or inspect the crash in gdb
+  - Does not guess a fix without seeing the failing code or sanitizer trace

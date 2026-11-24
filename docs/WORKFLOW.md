@@ -61,6 +61,7 @@ They combine fine: ponytail decides *what* to change, caveman decides *how much 
 | Skill | Use when |
 |---|---|
 | `c-cpp-debugging` | Segfaults, UB, leaks, heisenbugs in C/C++ (gdb, valgrind, ASan/UBSan, CMake/Make). Pairs with `systematic-debugging`. |
+| `perf-profiling` | Measure-first optimization for C/C++, engines, systems, GPU/CUDA (`perf`, flamegraphs, `cachegrind`, `hyperfine`, `nsys`/`ncu`). |
 | `reverse-engineering` | Crackmes, CTFs, your own binaries — **authorized targets only**. Ghidra / Binary Ninja / radare2 / strace / ltrace. |
 | `security-review` | Reviewing your own code for vulns before shipping or submitting. |
 | `llm-app-engineering` | Building LLM features/agents: structured output, evals, prompt versioning, cost/latency, tool use. |
