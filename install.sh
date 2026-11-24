@@ -118,8 +118,17 @@ do_links() {
   done
   shopt -u nullglob
 
-  link "$REPO/mcp/servers.json" "$HOME/.gemini/config/mcp_config.json"
-  link "$REPO/mcp/servers.json" "$HOME/.cursor/mcp.json"
+  local mcp_resolved="$HOME/.cache/agent-kit/mcp_config.json"
+  if (( ! CHECK )) && have python3; then
+    run mkdir -p "$(dirname "$mcp_resolved")"
+    if (( DRY_RUN )); then
+      say "[dry-run] render $REPO/mcp/servers.json -> $mcp_resolved"
+    else
+      render_mcp_json >"$mcp_resolved"
+    fi
+  fi
+  link "$mcp_resolved" "$HOME/.gemini/config/mcp_config.json"
+  link "$mcp_resolved" "$HOME/.cursor/mcp.json"
 }
 
 do_skill_packs() {
@@ -153,35 +162,75 @@ do_claude_plugins() {
   done < <(list_lines "$REPO/claude/plugins.txt")
 }
 
-# Print one line per server: name<TAB>server-json<TAB>command<US>arg<US>arg...
+# Render mcp/servers.json (+ optional mcp/servers.local.json) with ${VAR} expanded.
+render_mcp_json() {
+  python3 - "$REPO/mcp/servers.json" "$REPO/mcp/servers.local.json" <<'PY'
+import json, os, sys
+def expand(v):
+    if isinstance(v, str): return os.path.expandvars(v)
+    if isinstance(v, list): return [expand(x) for x in v]
+    if isinstance(v, dict): return {k: expand(val) for k, val in v.items()}
+    return v
+data = json.load(open(sys.argv[1]))
+if os.path.exists(sys.argv[2]):
+    data["mcpServers"].update(json.load(open(sys.argv[2])).get("mcpServers", {}))
+print(json.dumps(expand(data), indent=2))
+PY
+}
+
+# Print one line per server: name<TAB>hash<TAB>server-json<TAB>command<US>arg...<TAB>url
 mcp_entries() {
-  python3 - "$REPO/mcp/servers.json" <<'PY'
-import json, sys
-servers = json.load(open(sys.argv[1]))["mcpServers"]
+  render_mcp_json | python3 - <<'PY'
+import hashlib, json, sys
+servers = json.load(sys.stdin)["mcpServers"]
 for name, cfg in servers.items():
     cfg = dict(cfg)
     if "command" in cfg:
         cfg.setdefault("type", "stdio")
+    payload = json.dumps(cfg, sort_keys=True)
+    digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
     cmd = "\x1f".join([cfg.get("command", "")] + cfg.get("args", []))
-    print(f"{name}\t{json.dumps(cfg)}\t{cmd}")
+    url = cfg.get("url", "")
+    print(f"{name}\t{digest}\t{payload}\t{cmd}\t{url}")
 PY
 }
 
 do_mcp() {
   if ! have python3; then say "skip     MCP servers (python3 not found)"; return 0; fi
-  local name json cmdline cmd
-  while IFS=$'\t' read -r name json cmdline; do
+  local hash_dir="$HOME/.cache/agent-kit/mcp-hashes"
+  local name digest json cmdline url cmd prev
+  run mkdir -p "$hash_dir"
+  while IFS=$'\t' read -r name digest json cmdline url; do
     if have claude; then
-      if query claude mcp get "$name" >/dev/null 2>&1; then say "ok       claude mcp $name"
-      else ensure "claude mcp $name" claude mcp add-json -s user "$name" "$json"; fi
+      prev="$(cat "$hash_dir/claude-$name" 2>/dev/null || true)"
+      if query claude mcp get "$name" >/dev/null 2>&1 && [[ "$prev" == "$digest" ]]; then
+        say "ok       claude mcp $name"
+      else
+        if (( ! DRY_RUN )); then
+          claude mcp remove -s user "$name" >/dev/null 2>&1 || true
+        fi
+        ensure "claude mcp $name" claude mcp add-json -s user "$name" "$json"
+        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/claude-$name"; fi
+      fi
     else
       say "skip     claude mcp $name (claude not found)"
     fi
     if have codex; then
+      prev="$(cat "$hash_dir/codex-$name" 2>/dev/null || true)"
       IFS=$'\x1f' read -ra cmd <<<"$cmdline"
-      if query codex mcp get "$name" >/dev/null 2>&1; then say "ok       codex mcp $name"
-      elif [[ -z "${cmd[0]:-}" ]]; then say "skip     codex mcp $name (no command; add url servers by hand)"
-      else ensure "codex mcp $name" codex mcp add "$name" -- "${cmd[@]}"; fi
+      if query codex mcp get "$name" >/dev/null 2>&1 && [[ "$prev" == "$digest" ]]; then
+        say "ok       codex mcp $name"
+      elif [[ -n "${cmd[0]:-}" ]]; then
+        if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
+        ensure "codex mcp $name" codex mcp add "$name" -- "${cmd[@]}"
+        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+      elif [[ -n "$url" ]]; then
+        if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
+        ensure "codex mcp $name" codex mcp add "$name" --url "$url"
+        if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
+      else
+        say "skip     codex mcp $name (unsupported transport)"
+      fi
     else
       say "skip     codex mcp $name (codex not found)"
     fi

@@ -14,3 +14,6 @@
 # Eval run outputs
 evals/results/
 evals/**/results/
+
+# Machine-local MCP overrides
+mcp/servers.local.json

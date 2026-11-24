@@ -9,7 +9,7 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "/home/bo/Documents/Obsidian Vault"
+        "${HOME}/Documents/Obsidian Vault"
       ]
     }
   }

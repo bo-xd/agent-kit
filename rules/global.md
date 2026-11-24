@@ -1,19 +1,19 @@
 # Global working rules
 
-These rules apply in every project and every AI tool. A project's own
-`AGENTS.md`, `CLAUDE.md` or `GEMINI.md` is more specific and wins when they
-conflict.
+Precedence (highest wins): **User request > Safety constraints > Project `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` > Selected workflow skill > Style preferences.**
 
 ## Before editing
 - Read the files a change touches, and their callers, before editing.
 - Check `git status` first and preserve changes you did not make.
-- If the request is ambiguous in a way that changes the result, ask one short
-  question; otherwise pick the conventional option and say which.
+- Match effort to task complexity:
+  - Small, clear fix: start working directly.
+  - Multi-file or underspecified task: restate the sharpened goal, scope, and
+    verification check in 2–4 lines before editing.
+  - Architectural change: propose 2–3 approaches with trade-offs first.
+  - Ambiguous requirement: ask one short question; otherwise pick the
+    conventional option and say which.
 
 ## Prompt sharpening
-- Before starting a non-trivial or underspecified task, restate the sharpened
-  goal, scope, and verification check in 2–4 lines so misunderstandings are
-  caught before edits.
 - If the user asks to "sharpen" or "rewrite" a prompt, output a direct,
   copy-pasteable prompt (Objective, Context, Constraints, Done check) without
   executing it unless asked.

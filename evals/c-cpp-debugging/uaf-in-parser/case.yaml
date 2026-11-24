@@ -1,0 +1,14 @@
+name: uaf-in-parser
+prompt: |
+  Here is a C function that crashes intermittently under load. Identify the root cause and show how to verify it:
+  ```c
+  typedef struct { char *buf; size_t len; } Packet;
+  void process(Packet *p) {
+      if (p->len == 0) free(p->buf);
+      log_packet(p->buf); // sometimes crashes here
+  }
+  ```
+assertions:
+  - Identifies the use-after-free when p->len == 0 (free(p->buf) followed by log_packet(p->buf))
+  - Recommends AddressSanitizer (-fsanitize=address,undefined -g) to reproduce and verify the fix
+  - Fixes by returning early after free, setting p->buf = NULL, or freeing after log_packet
