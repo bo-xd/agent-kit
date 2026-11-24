@@ -185,7 +185,7 @@ print(json.dumps(expand(data), indent=2))
 PY
 }
 
-# Print one line per server: name<TAB>hash<TAB>server-json<TAB>command<US>arg...<TAB>url
+# Print one line per server: name<TAB>hash<TAB>server-json<TAB>command<US>arg...<TAB>env<US>...<TAB>url<TAB>bearer_env<TAB>has_headers
 mcp_entries() {
   render_mcp_json | python3 -c '
 import hashlib, json, sys
@@ -197,17 +197,21 @@ for name, cfg in servers.items():
     payload = json.dumps(cfg, sort_keys=True)
     digest = hashlib.sha256(payload.encode()).hexdigest()[:16]
     cmd = "\x1f".join([cfg.get("command", "")] + cfg.get("args", []))
+    env_pairs = "\x1f".join(f"{k}={v}" for k, v in (cfg.get("env") or {}).items())
     url = cfg.get("url", "")
-    print(f"{name}\t{digest}\t{payload}\t{cmd}\t{url}")
+    bearer = cfg.get("bearer_token_env_var", "")
+    has_hdrs = "1" if cfg.get("headers") else "0"
+    print("\x1e".join([name, digest, payload, cmd, env_pairs, url, bearer, has_hdrs]))
 '
 }
 
 do_mcp() {
   if ! have python3; then say "skip     MCP servers (python3 not found)"; return 0; fi
   local hash_dir="$HOME/.cache/agent-kit/mcp-hashes"
-  local name digest json cmdline url cmd prev
+  local name digest json cmdline envline url bearer has_hdrs prev
+  local -a cmd env_args url_args
   run mkdir -p "$hash_dir"
-  while IFS=$'\t' read -r name digest json cmdline url; do
+  while IFS=$'\x1e' read -r name digest json cmdline envline url bearer has_hdrs; do
     if have claude; then
       prev="$(cat "$hash_dir/claude-$name" 2>/dev/null || true)"
       if query claude mcp get "$name" >/dev/null 2>&1 && [[ "$prev" == "$digest" ]]; then
@@ -229,19 +233,31 @@ do_mcp() {
     if have codex; then
       prev="$(cat "$hash_dir/codex-$name" 2>/dev/null || true)"
       IFS=$'\x1f' read -ra cmd <<<"$cmdline"
+      env_args=()
+      if [[ -n "$envline" ]]; then
+        local -a env_items=()
+        IFS=$'\x1f' read -ra env_items <<<"$envline"
+        local kv
+        for kv in "${env_items[@]}"; do env_args+=(--env "$kv"); done
+      fi
       if query codex mcp get "$name" >/dev/null 2>&1 && [[ "$prev" == "$digest" ]]; then
         say "ok       codex mcp $name"
       elif [[ -n "${cmd[0]:-}" ]]; then
         if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
-        if ensure "codex mcp $name" codex mcp add "$name" -- "${cmd[@]}"; then
+        if ensure "codex mcp $name" codex mcp add "${env_args[@]}" "$name" -- "${cmd[@]}"; then
           if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
         else
           echo "FAIL     codex mcp $name (hash not saved; rerun install.sh to retry)" >&2
           FAILED=1
         fi
       elif [[ -n "$url" ]]; then
+        if [[ "$has_hdrs" == "1" ]]; then
+          say "warn     codex mcp $name: codex mcp add does not forward arbitrary HTTP headers (use bearer_token_env_var)"
+        fi
+        url_args=(--url "$url")
+        [[ -n "$bearer" ]] && url_args+=(--bearer-token-env-var "$bearer")
         if (( ! DRY_RUN )); then codex mcp remove "$name" >/dev/null 2>&1 || true; fi
-        if ensure "codex mcp $name" codex mcp add "$name" --url "$url"; then
+        if ensure "codex mcp $name" codex mcp add "${url_args[@]}" "$name"; then
           if (( ! DRY_RUN )); then printf '%s' "$digest" >"$hash_dir/codex-$name"; fi
         else
           echo "FAIL     codex mcp $name (hash not saved; rerun install.sh to retry)" >&2

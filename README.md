@@ -24,7 +24,7 @@ Plus CLI steps (each skipped if the CLI isn't installed, all skipped with `--lin
 |---|---|
 | `skills.txt` | `npx -y skills add <line> -g -y` per line → third-party packs into `~/.agents/skills` |
 | `claude/plugins.txt` | add missing marketplaces, `claude plugin install` missing plugins |
-| `mcp/servers.json` | `claude mcp add-json -s user …` / `codex mcp add …` for servers not yet registered |
+| `mcp/servers.json` | `claude mcp add-json -s user …` / `codex mcp add …` (re-synced automatically whenever config hashes change) |
 
 ```mermaid
 flowchart LR
@@ -115,9 +115,12 @@ add it to `claude/plugins.txt` too — otherwise Claude won't see it.
 { "mcpServers": { "context7": { "command": "npx", "args": ["-y", "@upstash/context7-mcp"] } } }
 ```
 
-Antigravity and Cursor read the file directly (symlink); `./install.sh` registers new servers with
-Claude and Codex. **No secrets in this file** — it's committed. Servers that need API keys or are
-personal (e.g. whatsapp) stay in the tool's own config.
+Antigravity and Cursor read the rendered config at `~/.cache/agent-kit/mcp_config.json` (with
+`${VAR}` expanded and optional gitignored `mcp/servers.local.json` merged); `./install.sh`
+registers new servers and automatically re-syncs existing Claude/Codex servers whenever their
+SHA-256 config hash in `~/.cache/agent-kit/mcp-hashes/` changes. **No secrets in `mcp/servers.json`**
+— it's committed. Machine-specific overrides go in `mcp/servers.local.json`, and personal servers
+(e.g. whatsapp) stay in the tool's own config.
 
 ## Backups and undo
 

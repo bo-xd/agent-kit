@@ -170,7 +170,43 @@ if PATH="$MOCK_BIN:/usr/bin:/bin" HOME="$H" ./install.sh >/dev/null 2>&1; then
   echo "expected install.sh to exit non-zero on MCP failure" >&2; exit 1
 fi
 [[ ! -f "$H/.cache/agent-kit/mcp-hashes/claude-context7" ]] || { echo "hash saved despite failure" >&2; exit 1; }
-rm -rf "$MOCK_BIN"
+
+# 5. Local override + env + URL bearer-token parity (in a temp repo copy)
+REPO_COPY="$(mktemp -d)"
+cp -a "$REPO/." "$REPO_COPY/"
+cat >"$REPO_COPY/mcp/servers.local.json" <<'JSON'
+{
+  "mcpServers": {
+    "env-stdio": {
+      "command": "echo",
+      "args": ["hi"],
+      "env": {"FOO": "bar"}
+    },
+    "auth-http": {
+      "url": "https://example.com/mcp",
+      "bearer_token_env_var": "MY_MCP_TOKEN"
+    }
+  }
+}
+JSON
+cat >"$MOCK_BIN/claude" <<'SH'
+#!/usr/bin/env bash
+echo "claude $*" >>"$MCP_LOG"
+case "$1 $2" in
+  "mcp get") grep -q "^installed $3$" "$MCP_STATE" 2>/dev/null ;;
+  "mcp add-json") echo "installed $5" >>"$MCP_STATE" ;;
+  "mcp remove") sed -i "/^installed $5$/d" "$MCP_STATE" 2>/dev/null || true ;;
+  "plugin marketplace"|"plugin list") exit 0 ;;
+esac
+SH
+chmod +x "$MOCK_BIN/claude"
+: >"$MCP_LOG"
+PATH="$MOCK_BIN:/usr/bin:/bin" HOME="$H" "$REPO_COPY/install.sh" >/dev/null
+grep -q "codex mcp add --env FOO=bar env-stdio -- echo hi" "$MCP_LOG"
+grep -q "codex mcp add --url https://example.com/mcp --bearer-token-env-var MY_MCP_TOKEN auth-http" "$MCP_LOG"
+grep -q "claude mcp add-json -s user env-stdio" "$MCP_LOG"
+grep -q "claude mcp add-json -s user auth-http" "$MCP_LOG"
+rm -rf "$REPO_COPY" "$MOCK_BIN"
 
 say "==> init-project.sh & format-on-edit.sh smoke tests"
 P="$(mktemp -d)"
@@ -178,6 +214,7 @@ touch "$P/CMakeLists.txt"
 ./scripts/init-project.sh "$P" >/dev/null
 [[ -f "$P/AGENTS.md" && -f "$P/CLAUDE.md" ]] || { echo "init-project.sh failed" >&2; exit 1; }
 grep -q "CMake" "$P/AGENTS.md" || { echo "init-project.sh missed CMake stack" >&2; exit 1; }
+grep -q "# TODO: verify" "$P/AGENTS.md" || { echo "expected unverified commands marked TODO" >&2; exit 1; }
 ./hooks/format-on-edit.sh <<<'{"tool_input":{"file_path":""}}'
 rm -rf "$P"
 
