@@ -1,6 +1,6 @@
 ---
 name: project-agents-md
-description: Guide for writing or updating a project's AGENTS.md (read by Codex, Cursor, Antigravity, Junie, Copilot; Claude Code via a CLAUDE.md pointer) from the ai-setup template. Use when starting a new project, when an agent keeps making the same project-specific mistake, or when asked to create, improve, or audit an AGENTS.md / CLAUDE.md / GEMINI.md.
+description: Guide for writing or updating a project's AGENTS.md (read by Codex, Cursor, Antigravity, Junie, Copilot; Claude Code via a CLAUDE.md pointer) from the agent-kit template. Use when starting a new project, when an agent keeps making the same project-specific mistake, or when asked to create, improve, or audit an AGENTS.md / CLAUDE.md / GEMINI.md.
 ---
 
 # Project AGENTS.md
@@ -10,8 +10,8 @@ how to build, test, and run, where things live, and the local rules. Global habi
 (read before editing, smallest change, verify) already live in the global rules — do
 not repeat them here.
 
-Template: `templates/AGENTS.md` in the ai-setup repo
-(`~/Coding/ai-setup/templates/AGENTS.md`).
+Template: `templates/AGENTS.md` in the agent-kit repo
+(`~/Coding/agent-kit/templates/AGENTS.md`).
 
 ## 1. Gather facts from the repo, don't invent them
 

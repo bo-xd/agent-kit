@@ -1,4 +1,4 @@
-# ai-setup
+# agent-kit
 
 One source of truth for my AI coding setup — global rules, skills, plugins, MCP servers and
 subagents — shared by **Claude Code, Codex, Antigravity (agy), Cursor and Junie**, installed with
@@ -48,8 +48,8 @@ flowchart LR
 ## Quick start
 
 ```bash
-git clone <this-repo> ~/Coding/ai-setup
-cd ~/Coding/ai-setup
+git clone https://github.com/bo-xd/agent-kit.git ~/Coding/agent-kit
+cd ~/Coding/agent-kit
 ./install.sh --dry-run      # print every action, change nothing
 ./install.sh                # link everything + run npx/claude/codex steps
 ./install.sh --check        # OK / MISSING / WRONG per link; non-zero exit if anything is off
@@ -113,16 +113,16 @@ personal (e.g. whatsapp) stay in the tool's own config.
 ## Backups and undo
 
 Before linking, any real file or foreign symlink at a target is **moved** to
-`~/.ai-setup-backups/<timestamp>/<same path relative to ~>`. Nothing is deleted.
+`~/.agent-kit-backups/<timestamp>/<same path relative to ~>`. Nothing is deleted.
 
 To undo, for each target you want back:
 
 ```bash
 rm ~/.claude/CLAUDE.md                                            # remove the symlink
-mv ~/.ai-setup-backups/<timestamp>/.claude/CLAUDE.md ~/.claude/   # restore the original
+mv ~/.agent-kit-backups/<timestamp>/.claude/CLAUDE.md ~/.claude/  # restore the original
 ```
 
-`ls -R ~/.ai-setup-backups/<timestamp>` shows exactly what was moved. Plugins and MCP servers that
+`ls -R ~/.agent-kit-backups/<timestamp>` shows exactly what was moved. Plugins and MCP servers that
 were added via CLI can be removed with `claude plugin uninstall <id>`, `claude mcp remove <name>`,
 `codex mcp remove <name>`.
 

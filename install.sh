@@ -6,7 +6,7 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TS="$(date +%Y%m%d-%H%M%S)"
-BACKUP_DIR="$HOME/.ai-setup-backups/$TS"
+BACKUP_DIR="$HOME/.agent-kit-backups/$TS"
 
 DRY_RUN=0
 CHECK=0
@@ -24,7 +24,7 @@ Usage: ./install.sh [--dry-run] [--check] [--links-only] [--help]
   --help        show this help
 
 Existing files or foreign symlinks at a target are moved to
-~/.ai-setup-backups/<timestamp>/<same relative path> before linking.
+~/.agent-kit-backups/<timestamp>/<same relative path> before linking.
 EOF
 }
 

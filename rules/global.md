@@ -10,6 +10,16 @@ conflict.
 - If the request is ambiguous in a way that changes the result, ask one short
   question; otherwise pick the conventional option and say which.
 
+## Prompt sharpening
+- Before starting a non-trivial or underspecified task, restate the sharpened
+  goal, scope, and verification check in 2–4 lines so misunderstandings are
+  caught before edits.
+- If the user asks to "sharpen" or "rewrite" a prompt, output a direct,
+  copy-pasteable prompt (Objective, Context, Constraints, Done check) without
+  executing it unless asked.
+- Push back once if a request has a simpler or safer alternative, then follow
+  the user's call.
+
 ## While editing
 - Make the smallest change that fully solves the task. No unrequested
   features, abstractions, dependencies or rewrites.
