@@ -10,3 +10,7 @@
 .DS_Store
 .vscode/
 .idea/
+
+# Eval run outputs
+evals/results/
+evals/**/results/

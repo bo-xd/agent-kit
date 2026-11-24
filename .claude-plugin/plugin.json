@@ -1,0 +1,6 @@
+{
+  "name": "agent-kit",
+  "version": "1.0.0",
+  "description": "Single source of truth for Bo's AI coding rules, skills, hooks, prompts, and MCP servers.",
+  "skills": "./skills"
+}

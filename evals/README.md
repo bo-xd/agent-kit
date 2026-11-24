@@ -5,8 +5,9 @@ Starter evaluation cases for `agent-kit` skills so prompt/skill edits can be tes
 ## Running with Claude Code
 
 ```bash
-claude plugin eval skills/c-cpp-debugging --eval-dir evals/c-cpp-debugging
-claude plugin eval skills/prompt-sharpener --eval-dir evals/prompt-sharpener
+./scripts/eval.sh
+# or filter to a specific case:
+./scripts/eval.sh --case intermittent
 ```
 
 ## Adding a case

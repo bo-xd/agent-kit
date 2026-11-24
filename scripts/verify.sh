@@ -9,17 +9,23 @@ cd "$REPO"
 say() { printf '%s\n' "$*"; }
 
 say "==> bash syntax"
-bash -n install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh
+bash -n install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh scripts/eval.sh
 
 if command -v shellcheck >/dev/null 2>&1; then
   say "==> shellcheck"
-  shellcheck install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh
+  shellcheck install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh scripts/eval.sh
 else
   say "==> shellcheck (skipped: not installed)"
 fi
 
 say "==> JSON validation"
 python3 -m json.tool mcp/servers.json >/dev/null
+python3 -m json.tool .claude-plugin/plugin.json >/dev/null
+
+if command -v claude >/dev/null 2>&1; then
+  say "==> claude plugin validate"
+  claude plugin validate . >/dev/null
+fi
 
 say "==> SKILL.md frontmatter & size"
 python3 - <<'PY'
@@ -94,5 +100,19 @@ touch "$P/CMakeLists.txt"
 grep -q "CMake" "$P/AGENTS.md" || { echo "init-project.sh missed CMake stack" >&2; exit 1; }
 ./hooks/format-on-edit.sh <<<'{"tool_input":{"file_path":""}}'
 rm -rf "$P"
+
+say "==> eval case structure"
+python3 - <<'PY'
+import glob, re, sys
+cases = sorted(glob.glob("evals/*/*/case.yaml"))
+if not cases:
+    sys.exit("no eval cases found")
+for path in cases:
+    text = open(path, encoding="utf-8").read()
+    for key in ("name:", "prompt:", "assertions:"):
+        if not re.search(rf"^{key}", text, re.M):
+            sys.exit(f"{path}: missing '{key}'")
+print(f"OK: {len(cases)} eval cases validated")
+PY
 
 say "ALL CHECKS PASSED"
