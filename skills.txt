@@ -1,0 +1,13 @@
+# Third-party skill packs installed via `npx -y skills add <args> -g -y`.
+# Claude Code gets these via claude/plugins.txt instead; other tools read ~/.agents/skills.
+
+obra/superpowers
+JuliusBrussee/caveman
+DietrichGebert/ponytail --skill ponytail
+mattpocock/skills --skill handoff
+mattpocock/skills --skill grill-me
+anthropics/skills --skill webapp-testing
+
+# Verified with `npx -y skills add mksglu/context-mode -l`: repo only exposes
+# ctx-doctor, ctx-stats, ctx-upgrade, release (no `context-mode` skill).
+# mksglu/context-mode --skill context-mode

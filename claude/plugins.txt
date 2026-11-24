@@ -1,0 +1,18 @@
+# Claude Code plugins. One entry per line:
+#   marketplace <name> <github-owner/repo>   added if `claude plugin marketplace list` lacks <name>
+#   plugin <plugin>@<marketplace>            installed if `claude plugin list` lacks it
+# anthropic-plugin-directory is built in and needs no marketplace line.
+
+marketplace claude-plugins-official anthropics/claude-plugins-official
+marketplace impeccable pbakaus/impeccable
+marketplace ponytail DietrichGebert/ponytail
+
+plugin clangd-lsp@claude-plugins-official
+plugin frontend-design@claude-plugins-official
+plugin impeccable@impeccable
+plugin google-multi-account@anthropic-plugin-directory
+plugin superpowers@anthropic-plugin-directory
+plugin caveman@anthropic-plugin-directory
+plugin ponytail@ponytail
+plugin superdesign@anthropic-plugin-directory
+plugin grill@anthropic-plugin-directory

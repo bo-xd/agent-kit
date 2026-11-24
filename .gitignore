@@ -1,0 +1,12 @@
+# Secrets never go in this repo.
+.env
+.env.*
+*.key
+*.pem
+
+# Editor / OS noise
+*.swp
+*~
+.DS_Store
+.vscode/
+.idea/
