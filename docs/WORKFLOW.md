@@ -66,13 +66,14 @@ They combine fine: ponytail decides *what* to change, caveman decides *how much 
 | `llm-app-engineering` | Building LLM features/agents: structured output, evals, prompt versioning, cost/latency, tool use. |
 | `project-agents-md` | Starting or onboarding a project: writes its `AGENTS.md` from `templates/AGENTS.md`. |
 | `prompt-sharpener` | Turning a rough idea into a direct, high-leverage prompt (Objective, Context, Constraints, Done check). |
+| `obsidian-vault` | Reading, searching, or saving atomic notes/postmortems in `~/Documents/Obsidian Vault`. |
 
 Tip: run `project-agents-md` once per project. A good project `AGENTS.md` (build/test commands,
 layout, gotchas) improves every tool's results more than any prompt trick.
 
 ## Prompt patterns that work
 
-Want an agent to rewrite your rough prompt into a sharp one before running it? Say **"use prompt-sharpener on this: ..."** (or **"sharpen and run: ..."**). `rules/global.md` also tells every tool to restate underspecified tasks in 2–4 lines before editing.
+Want an agent to rewrite your rough prompt into a sharp one before running it? Say **"use prompt-sharpener on this: ..."** (or **"sharpen and run: ..."**). `rules/global.md` also tells every tool to restate underspecified tasks in 2–4 lines before editing. For ready-to-use templates (C/C++ UB audit, RE breakdown, quiz mode, cold diff review, Obsidian postmortems), see [prompts/README.md](../prompts/README.md).
 
 - **Give the goal and the check.** "Make `make test` pass without changing the tests" beats
   "fix the tests". Agents stop when they can verify.

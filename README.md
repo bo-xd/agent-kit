@@ -75,6 +75,8 @@ claude/plugins.txt              Claude marketplaces + plugin ids
 mcp/servers.json                shared MCP servers ({"mcpServers": {...}})
 agents/antigravity/*.md         Antigravity subagents
 templates/AGENTS.md             starting point for a project's AGENTS.md
+hooks/                          optional safety hooks (see hooks/README.md)
+prompts/                        reusable high-leverage prompt library
 docs/WORKFLOW.md                playbook: which tool / skill when, prompts that work
 AGENTS.md                       instructions for agents editing this repo
 ```
