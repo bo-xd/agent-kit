@@ -75,7 +75,7 @@ say "==> install.sh sandbox matrix (fresh, existing, broken, upgrade)"
 # 1. Fresh install
 H_FRESH="$(mktemp -d)"
 HOME="$H_FRESH" ./install.sh --links-only >/dev/null
-HOME="$H_FRESH" ./install.sh --check >/dev/null
+HOME="$H_FRESH" ./install.sh --check --links-only >/dev/null
 rm -rf "$H_FRESH"
 
 # 2. Existing files + foreign/dangling symlinks + idempotency
@@ -91,7 +91,7 @@ HOME="$H" ./install.sh --dry-run --links-only >/dev/null
 after="$(find "$H" -printf '%p %l\n' | sort)"
 diff -u <(printf '%s\n' "$before") <(printf '%s\n' "$after")
 
-if HOME="$H" ./install.sh --check >/dev/null 2>&1; then
+if HOME="$H" ./install.sh --check --links-only >/dev/null 2>&1; then
   echo "expected --check to fail on broken links" >&2; exit 1
 fi
 
@@ -104,7 +104,7 @@ HOME="$H" ./install.sh --links-only >/dev/null
 snap2="$(find "$H" -printf '%p %l\n' | sort)"
 diff -u <(printf '%s\n' "$snap1") <(printf '%s\n' "$snap2")
 
-HOME="$H" ./install.sh --check >/dev/null
+HOME="$H" ./install.sh --check --links-only >/dev/null
 
 # 3. Upgrade / MCP reconciliation with mock claude & codex CLIs
 MOCK_BIN="$(mktemp -d)"
@@ -206,6 +206,22 @@ grep -q "codex mcp add --env FOO=bar env-stdio -- echo hi" "$MCP_LOG"
 grep -q "codex mcp add --url https://example.com/mcp --bearer-token-env-var MY_MCP_TOKEN auth-http" "$MCP_LOG"
 grep -q "claude mcp add-json -s user env-stdio" "$MCP_LOG"
 grep -q "claude mcp add-json -s user auth-http" "$MCP_LOG"
+# 6. Unset ${VAR} in MCP config must fail cleanly without writing hash
+UNSET_COPY="$(mktemp -d)"
+cp -a "$REPO/." "$UNSET_COPY/"
+cat >"$UNSET_COPY/mcp/servers.local.json" <<'JSON'
+{"mcpServers": {"bad": {"url": "https://example.com", "bearer_token_env_var": "TOTALLY_UNSET_VAR_XYZ", "env": {"K": "${TOTALLY_UNSET_VAR_XYZ}"}}}}
+JSON
+if HOME="$H" "$UNSET_COPY/install.sh" --links-only >/dev/null 2>&1; then
+  echo "expected install.sh to reject unset \${VAR}" >&2; exit 1
+fi
+rm -rf "$UNSET_COPY"
+
+# 7. --prune-backups keeps newest N
+mkdir -p "$H/.agent-kit-backups/20260101-000001-1" "$H/.agent-kit-backups/20260101-000002-2" "$H/.agent-kit-backups/20260101-000003-3"
+HOME="$H" ./install.sh --links-only --prune-backups 1 >/dev/null
+[[ "$(find "$H/.agent-kit-backups" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 1 ]]
+
 rm -rf "$REPO_COPY" "$MOCK_BIN"
 
 say "==> init-project.sh & format-on-edit.sh smoke tests"

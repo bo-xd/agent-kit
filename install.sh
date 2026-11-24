@@ -4,6 +4,11 @@
 # servers via their CLIs. Idempotent. See README.md.
 set -euo pipefail
 
+if [[ "${OSTYPE:-}" == msys* || "${OSTYPE:-}" == cygwin* ]]; then
+  echo "error: native Windows symlinks are not supported; use WSL, Linux, or macOS" >&2
+  exit 1
+fi
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TS="$(date +%Y%m%d-%H%M%S)-$$"
 BACKUP_DIR="$HOME/.agent-kit-backups/$TS"
@@ -11,32 +16,39 @@ BACKUP_DIR="$HOME/.agent-kit-backups/$TS"
 DRY_RUN=0
 CHECK=0
 LINKS_ONLY=0
+PRUNE_KEEP=""
 NOT_OK=0
 FAILED=0
 
 usage() {
   cat <<EOF
-Usage: ./install.sh [--dry-run] [--check] [--links-only] [--help]
+Usage: ./install.sh [--dry-run] [--check] [--links-only] [--prune-backups N] [--help]
 
-  (no flags)    create all links, then run the npx / claude / codex steps
-  --dry-run     print every action, change nothing
-  --check       report each link as OK / MISSING / WRONG; exit 1 if any is not OK
-  --links-only  only create links; skip the npx / claude / codex steps
-  --help        show this help
+  (no flags)          create all links, then run the npx / claude / codex steps
+  --dry-run           print every action, change nothing
+  --check             verify links (and MCP/plugin state unless --links-only); exit 1 if any is not OK
+  --links-only        only create links; skip the npx / claude / codex steps
+  --prune-backups N   keep only the newest N directories in ~/.agent-kit-backups
+  --help              show this help
 
 Existing files or foreign symlinks at a target are moved to
 ~/.agent-kit-backups/<timestamp>/<same relative path> before linking.
 EOF
 }
 
-for arg in "$@"; do
-  case "$arg" in
+while (( $# )); do
+  case "$1" in
     --dry-run) DRY_RUN=1 ;;
     --check) CHECK=1 ;;
     --links-only) LINKS_ONLY=1 ;;
+    --prune-backups)
+      shift
+      [[ "${1:-}" =~ ^[0-9]+$ ]] || { echo "error: --prune-backups requires a non-negative integer" >&2; exit 2; }
+      PRUNE_KEEP="$1" ;;
     -h|--help) usage; exit 0 ;;
-    *) echo "unknown option: $arg" >&2; usage >&2; exit 2 ;;
+    *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
+  shift
 done
 
 say() { printf '%s\n' "$*"; }
@@ -170,11 +182,18 @@ do_claude_plugins() {
 }
 
 # Render mcp/servers.json (+ optional mcp/servers.local.json) with ${VAR} expanded.
+# Refuses unset or empty ${VAR} placeholders so broken configs are never hashed.
 render_mcp_json() {
   python3 - "$REPO/mcp/servers.json" "$REPO/mcp/servers.local.json" <<'PY'
-import json, os, sys
+import json, os, re, sys
+VAR_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 def expand(v):
-    if isinstance(v, str): return os.path.expandvars(v)
+    if isinstance(v, str):
+        for name in VAR_RE.findall(v):
+            if not os.environ.get(name):
+                sys.stderr.write(f"error: MCP config references unset or empty env var '${{{name}}}'\n")
+                sys.exit(1)
+        return VAR_RE.sub(lambda m: os.environ[m.group(1)], v)
     if isinstance(v, list): return [expand(x) for x in v]
     if isinstance(v, dict): return {k: expand(val) for k, val in v.items()}
     return v
@@ -272,14 +291,59 @@ do_mcp() {
   done < <(mcp_entries)
 }
 
+check_cli_layer() {
+  if have claude; then
+    local plugins kind a b
+    plugins="$(claude plugin list 2>/dev/null || true)"
+    while read -r kind a b; do
+      [[ "$kind" == "plugin" ]] || continue
+      if listed "$plugins" "$a"; then say "OK       plugin $a"
+      else say "MISSING  plugin $a"; NOT_OK=1; fi
+    done < <(list_lines "$REPO/claude/plugins.txt")
+  fi
+  if have python3; then
+    local hash_dir="$HOME/.cache/agent-kit/mcp-hashes"
+    local name digest _rest prev tool
+    while IFS=$'\x1e' read -r name digest _rest; do
+      for tool in claude codex; do
+        have "$tool" || continue
+        prev="$(cat "$hash_dir/$tool-$name" 2>/dev/null || true)"
+        if [[ "$prev" == "$digest" ]]; then say "OK       $tool mcp $name"
+        elif [[ -z "$prev" ]]; then say "MISSING  $tool mcp $name"; NOT_OK=1
+        else say "STALE    $tool mcp $name"; NOT_OK=1; fi
+      done
+    done < <(mcp_entries)
+  fi
+}
+
+prune_backups() {
+  local keep="$1" root="$HOME/.agent-kit-backups"
+  [[ -d "$root" ]] || return 0
+  mapfile -t dirs < <(find "$root" -mindepth 1 -maxdepth 1 -type d | sort)
+  local count="${#dirs[@]}"
+  if (( count > keep )); then
+    local i
+    for (( i = 0; i < count - keep; i++ )); do
+      say "prune    ${dirs[$i]}"
+      run rm -rf "${dirs[$i]}"
+    done
+  fi
+}
+
 do_links
 if (( CHECK )); then
+  if (( ! LINKS_ONLY )); then
+    check_cli_layer
+  fi
   exit "$NOT_OK"
 fi
 if (( ! LINKS_ONLY )); then
   do_skill_packs
   do_claude_plugins
   do_mcp
+fi
+if [[ -n "$PRUNE_KEEP" ]]; then
+  prune_backups "$PRUNE_KEEP"
 fi
 if (( FAILED )); then
   echo "install.sh finished with failures (see above)" >&2

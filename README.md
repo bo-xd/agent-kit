@@ -26,44 +26,39 @@ Plus CLI steps (each skipped if the CLI isn't installed, all skipped with `--lin
 | `claude/plugins.txt` | add missing marketplaces, `claude plugin install` missing plugins |
 | `mcp/servers.json` | `claude mcp add-json -s user …` / `codex mcp add …` (re-synced automatically whenever config hashes change) |
 
-```mermaid
-flowchart LR
-  R[rules/global.md] --> G[~/.gemini/GEMINI.md]
-  R --> C[~/.claude/CLAUDE.md]
-  R --> X[~/.codex/AGENTS.md]
-  S[skills/*] --> A[~/.agents/skills]
-  S --> CS[~/.claude/skills]
-  T[skills.txt] -- npx skills add --> A
-  P[claude/plugins.txt] -- claude plugin install --> CP[Claude plugins]
-  M[mcp/servers.json] --> GM[~/.gemini/config/mcp_config.json]
-  M --> CM[~/.cursor/mcp.json]
-  M -- mcp add --> CC[Claude + Codex MCP]
-```
-
 > **Third-party packs reach Claude differently.** Claude Code does not read `~/.agents/skills`.
 > It gets superpowers / caveman / ponytail / grill etc. as **plugins** (`claude/plugins.txt`).
 > Every other tool gets the same packs as **skills** via `skills.txt` → `~/.agents/skills`.
 > My own skills in `skills/` are linked into both places.
 
-## Quick start
+## Quick start (macOS / Linux / WSL)
 
 ```bash
 git clone https://github.com/bo-xd/agent-kit.git ~/Coding/agent-kit
 cd ~/Coding/agent-kit
-./install.sh --dry-run      # print every action, change nothing
-./install.sh                # link everything + run npx/claude/codex steps
-./install.sh --check        # OK / MISSING / WRONG per link; non-zero exit if anything is off
+./install.sh --dry-run          # print every action, change nothing
+./install.sh                    # link everything + run npx/claude/codex steps
+./install.sh --check            # verify links + MCP/plugin state; non-zero exit if anything is off
 ```
 
 | Flag | Does |
 |---|---|
 | *(none)* | links + third-party skills + Claude plugins + MCP registration |
 | `--dry-run` | print actions only |
-| `--check` | verify links, exit non-zero on any problem |
+| `--check` | verify links + CLI-managed MCP/plugins (pair with `--links-only` for links only) |
 | `--links-only` | symlinks only; skip all `npx` / `claude` / `codex` steps (offline-safe) |
+| `--prune-backups N` | keep only the newest `N` backup directories in `~/.agent-kit-backups` |
 | `--help` | usage |
 
 The script is idempotent: re-running it is a no-op when everything is already in place.
+
+## Intentionally not managed
+
+- Tool settings files (`~/.claude/settings.json`, `~/.codex/config.toml`, …) — machine-specific.
+- Secrets and API keys (use `${ENV_VAR}` placeholders + gitignored `mcp/servers.local.json`).
+- Personal MCP servers (e.g. whatsapp).
+- Copilot / Junie-specific config beyond what `~/.agents/skills` already gives them.
+- Per-project `AGENTS.md` files — those live in each project (`./scripts/init-project.sh` or `templates/AGENTS.md`: build/test commands, layout, conventions, do-not rules, gotchas, done criteria).
 
 ## Repo layout
 
@@ -134,14 +129,6 @@ rm ~/.claude/CLAUDE.md                                            # remove the s
 mv ~/.agent-kit-backups/<timestamp>/.claude/CLAUDE.md ~/.claude/  # restore the original
 ```
 
-`ls -R ~/.agent-kit-backups/<timestamp>` shows exactly what was moved. Plugins and MCP servers that
+`ls -R ~/.agent-kit-backups/<timestamp>` shows exactly what was moved. Pass `--prune-backups N` to keep only the newest `N` backup folders. Plugins and MCP servers that
 were added via CLI can be removed with `claude plugin uninstall <id>`, `claude mcp remove <name>`,
 `codex mcp remove <name>`.
-
-## Intentionally not managed
-
-- Tool settings files (`~/.claude/settings.json`, `~/.codex/config.toml`, …) — machine-specific.
-- Secrets and API keys.
-- Personal MCP servers (e.g. whatsapp).
-- Copilot / Junie-specific config beyond what `~/.agents/skills` already gives them.
-- Per-project `AGENTS.md` files — those live in each project (start from `templates/AGENTS.md`).

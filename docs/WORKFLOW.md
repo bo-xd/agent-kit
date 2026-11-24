@@ -72,6 +72,8 @@ They combine fine: ponytail decides *what* to change, caveman decides *how much 
 Tip: run `project-agents-md` once per project. A good project `AGENTS.md` (build/test commands,
 layout, gotchas) improves every tool's results more than any prompt trick.
 
+**Skill vs. subagent:** write a **skill** (`skills/<name>/SKILL.md`) for reusable procedures that any agent should load into its own context; write a **subagent** (`agents/antigravity/*.md`) when you want an isolated worker with its own system prompt or model (e.g. `fast-worker`).
+
 ## Prompt patterns that work
 
 Want an agent to rewrite your rough prompt into a sharp one before running it? Say **"use prompt-sharpener on this: ..."** (or **"sharpen and run: ..."**). `rules/global.md` also tells every tool to restate underspecified tasks in 2–4 lines before editing. For ready-to-use templates (C/C++ UB audit, RE breakdown, quiz mode, cold diff review, Obsidian postmortems), see [prompts/README.md](../prompts/README.md).
