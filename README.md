@@ -79,6 +79,8 @@ hooks/                          optional safety hooks (see hooks/README.md)
 prompts/                        reusable high-leverage prompt library
 evals/                          starter skill eval cases
 scripts/verify.sh               syntax, frontmatter, hook, and sandbox install checks
+scripts/init-project.sh         bootstrap AGENTS.md + CLAUDE.md in any repo
+scripts/sync.sh                 pull, re-link, and update third-party skills/plugins
 .github/workflows/ci.yml        runs scripts/verify.sh on push/PR to main
 docs/WORKFLOW.md                playbook: which tool / skill when, prompts that work
 AGENTS.md                       instructions for agents editing this repo

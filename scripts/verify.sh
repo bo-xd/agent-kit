@@ -9,11 +9,11 @@ cd "$REPO"
 say() { printf '%s\n' "$*"; }
 
 say "==> bash syntax"
-bash -n install.sh hooks/guard-command.sh scripts/verify.sh
+bash -n install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh
 
 if command -v shellcheck >/dev/null 2>&1; then
   say "==> shellcheck"
-  shellcheck install.sh hooks/guard-command.sh scripts/verify.sh
+  shellcheck install.sh hooks/guard-command.sh hooks/format-on-edit.sh scripts/verify.sh scripts/init-project.sh scripts/sync.sh
 else
   say "==> shellcheck (skipped: not installed)"
 fi
@@ -85,4 +85,14 @@ snap2="$(find "$H" -printf '%p %l\n' | sort)"
 diff -u <(printf '%s\n' "$snap1") <(printf '%s\n' "$snap2")
 
 HOME="$H" ./install.sh --check >/dev/null
+
+say "==> init-project.sh & format-on-edit.sh smoke tests"
+P="$(mktemp -d)"
+touch "$P/CMakeLists.txt"
+./scripts/init-project.sh "$P" >/dev/null
+[[ -f "$P/AGENTS.md" && -f "$P/CLAUDE.md" ]] || { echo "init-project.sh failed" >&2; exit 1; }
+grep -q "CMake" "$P/AGENTS.md" || { echo "init-project.sh missed CMake stack" >&2; exit 1; }
+./hooks/format-on-edit.sh <<<'{"tool_input":{"file_path":""}}'
+rm -rf "$P"
+
 say "ALL CHECKS PASSED"
